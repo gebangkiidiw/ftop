@@ -37,13 +37,13 @@ final class Updater {
     /// Only an installed `Ftop.app` the user may write to can replace itself.
     static var canInstall: Bool {
         let bundle = Bundle.main.bundleURL
-        return current != nil && bundle.pathExtension == "app" && Bundle.main.bundleIdentifier == "dev.ftop.app"
+        return UpdateFeed.enabled && current != nil && bundle.pathExtension == "app" && Bundle.main.bundleIdentifier == "dev.ftop.app"
             && FileManager.default.isWritableFile(atPath: bundle.deletingLastPathComponent().path)
     }
 
     /// The daily check: does nothing when updates are off or the last check is recent.
     func checkIfDue() {
-        guard mode != .off, Self.current != nil else { return }
+        guard UpdateFeed.enabled, mode != .off, Self.current != nil else { return }
         let last = UserDefaults.standard.double(forKey: Self.lastCheckKey)
         guard Date().timeIntervalSince1970 - last >= Self.checkInterval else { return }
         Task { await check(install: mode == .install) }
@@ -51,6 +51,10 @@ final class Updater {
 
     /// Asks the release server now. `install` also installs what it finds.
     func check(install: Bool) async {
+        guard UpdateFeed.enabled else {
+            state = .failed("updates are off in this fork; an upstream release would replace it")
+            return
+        }
         guard !busy, let current = Self.current else { return }
         busy = true
         defer { busy = false }

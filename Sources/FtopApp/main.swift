@@ -529,6 +529,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             let shown = Set(model.config.shown)
             if shown.contains(.gpu), snapshot.gpu.value == nil { unreadable.insert(.gpu) }
             if shown.contains(.power), snapshot.power.value == nil { unreadable.insert(.power) }
+            if shown.contains(.disk), snapshot.disk.value == nil { unreadable.insert(.disk) }
             if shown.contains(.network), snapshot.network.value == nil { unreadable.insert(.network) }
         }
         return ControlPanel.State(

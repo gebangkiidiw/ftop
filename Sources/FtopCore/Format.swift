@@ -74,6 +74,13 @@ public enum Format {
         return String(Int(megabytes.rounded())) + "M"
     }
 
+    /// Disk space in decimal units, as Finder writes it: "412" GB below a terabyte, "1.8" TB from there.
+    public static func storage(_ bytes: UInt64) -> Quantity {
+        let gigabytes = Double(bytes) / 1_000_000_000
+        if gigabytes >= 999.5 { return Quantity(number: decimal(gigabytes / 1000), unit: "TB", shortUnit: "T") }
+        return Quantity(number: String(Int(gigabytes.rounded())), unit: "GB", shortUnit: "G")
+    }
+
     public static func gigahertz(_ megahertz: Double) -> String {
         String(format: "%.2f", megahertz / 1000)
     }

@@ -258,6 +258,14 @@ public struct PanelStyle: Equatable, Sendable {
         }
     }
 
+    /// The disk ring: calm until the disk is nearly full.
+    static func diskPaint(_ usedFraction: Double?) -> Paint {
+        guard let usedFraction else { return .secondary }
+        if usedFraction >= 0.95 { return .critical }
+        if usedFraction >= 0.85 { return .warning }
+        return .normal
+    }
+
     static func pressurePaint(_ level: PressureLevel?) -> Paint {
         switch level {
         case .normal: .normal
@@ -350,6 +358,19 @@ public enum Strings {
         var parts = [pick("Whole machine", "整机功耗") + " \(Format.watts(power.systemWatts)) W"]
         if let input = power.inputWatts.value { parts.append(pick("Adapter", "电源输入") + " \(Format.watts(input)) W") }
         if let gpu = power.gpuWatts.value { parts.append("GPU \(Format.watts(gpu)) W") }
+        return parts.joined(separator: " · ")
+    }
+
+    static func disk(_ disk: DiskSample) -> String {
+        let used = Format.storage(disk.usedBytes)
+        let total = Format.storage(disk.totalBytes)
+        let free = Format.storage(disk.availableBytes)
+        var parts = [
+            pick("Disk used", "磁盘已用") + " \(used.text) / \(total.text) (\(Format.percent(disk.usedFraction))%)",
+            pick("free", "可用") + " \(free.text)",
+        ]
+        if let read = disk.readBytesPerSecond.value { parts.append(pick("read", "读取") + " \(Format.rate(read).text)") }
+        if let write = disk.writeBytesPerSecond.value { parts.append(pick("write", "写入") + " \(Format.rate(write).text)") }
         return parts.joined(separator: " · ")
     }
 

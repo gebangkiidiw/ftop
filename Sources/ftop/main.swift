@@ -106,6 +106,15 @@ func probe(json: Bool) {
         print("Power \(Format.watts(power.systemWatts)) W whole machine, adapter \(input), GPU \(gpu)")
     case .unavailable(let reason): print("Power unavailable: \(reason)")
     }
+    switch snapshot.disk {
+    case .value(let disk):
+        let read = disk.readBytesPerSecond.value.map { Format.rate($0).text } ?? "unavailable"
+        let write = disk.writeBytesPerSecond.value.map { Format.rate($0).text } ?? "unavailable"
+        print(
+            "Disk \(Format.storage(disk.usedBytes).text) / \(Format.storage(disk.totalBytes).text) used, "
+                + "\(Format.storage(disk.availableBytes).text) free, read \(read), write \(write)")
+    case .unavailable(let reason): print("Disk unavailable: \(reason)")
+    }
     switch snapshot.processes {
     case .value(let list):
         print("Processes (\(list.coversAllUsers ? "all users" : "your processes only; run `sudo ftop grant` to include system processes"))")
@@ -150,6 +159,12 @@ func doctor() {
         line("gpu power", power.gpuWatts.value != nil, power.gpuWatts.reason ?? "read through IOReport without admin rights")
     } else {
         line("power", false, snapshot.power.reason ?? "")
+    }
+    if let disk = snapshot.disk.value {
+        line("disk capacity", true, "startup volume, as Finder counts free space")
+        line("disk rates", disk.readBytesPerSecond.value != nil, disk.readBytesPerSecond.reason ?? "block storage driver counters on internal drives")
+    } else {
+        line("disk", false, snapshot.disk.reason ?? "")
     }
     if let list = snapshot.processes.value {
         if list.helperOutdated {

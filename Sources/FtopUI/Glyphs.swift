@@ -3,6 +3,8 @@ import AppKit
 /// The small picture inside a badge. Each reading has one, and it is the same picture at every window size.
 public enum Glyph: Hashable, Sendable {
     case cpu, gpu, memory, temperature, download, upload, adapter, machine, power
+    /// The startup disk, and what it reads and writes.
+    case disk, diskRead, diskWrite
     /// A process that belongs to no app.
     case process
 
@@ -17,6 +19,9 @@ public enum Glyph: Hashable, Sendable {
         case .adapter: "powerplug"
         case .machine: "laptopcomputer"
         case .power: "bolt.fill"
+        case .disk: "internaldrive"
+        case .diskRead: "arrow.down.to.line"
+        case .diskWrite: "arrow.up.to.line"
         case .cpu, .memory, .temperature, .process: nil
         }
     }
