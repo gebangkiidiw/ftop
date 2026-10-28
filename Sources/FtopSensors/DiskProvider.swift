@@ -46,17 +46,17 @@ final class DiskProvider {
         return (UInt64(total), UInt64(min(max(0, available), total)))
     }
 
-    /// Bytes read and written since boot, summed over the internal drives. Disk images
+    /// Bytes read and written since boot, summed over the onboard drives. Disk images
     /// are left out: what they read is already counted on the drive that holds them.
-    /// Without any drive marked internal, every drive that is not a disk image counts.
+    /// Without any drive marked onboard, every drive that is not a disk image counts.
     private static func readTotals() -> (read: UInt64, written: UInt64)? {
         var iterator: io_iterator_t = 0
         guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOBlockStorageDriver"), &iterator) == KERN_SUCCESS else {
             return nil
         }
         defer { IOObjectRelease(iterator) }
-        var internal: (read: UInt64, written: UInt64, count: Int) = (0, 0, 0)
-        var other: (read: UInt64, written: UInt64, count: Int) = (0, 0, 0)
+        var onboard: (read: UInt64, written: UInt64, count: Int) = (0, 0, 0)
+        var elsewhere: (read: UInt64, written: UInt64, count: Int) = (0, 0, 0)
         while true {
             let driver = IOIteratorNext(iterator)
             if driver == 0 { break }
@@ -69,15 +69,15 @@ final class DiskProvider {
             let written = (statistics["Bytes (Write)"] as? NSNumber)?.uint64Value ?? 0
             switch location(of: driver) {
             case "Internal":
-                internal = (internal.read &+ read, internal.written &+ written, internal.count + 1)
+                onboard = (onboard.read &+ read, onboard.written &+ written, onboard.count + 1)
             case "File", "Virtual Interface":
                 continue
             default:
-                other = (other.read &+ read, other.written &+ written, other.count + 1)
+                elsewhere = (elsewhere.read &+ read, elsewhere.written &+ written, elsewhere.count + 1)
             }
         }
-        if internal.count > 0 { return (internal.read, internal.written) }
-        if other.count > 0 { return (other.read, other.written) }
+        if onboard.count > 0 { return (onboard.read, onboard.written) }
+        if elsewhere.count > 0 { return (elsewhere.read, elsewhere.written) }
         return nil
     }
 
