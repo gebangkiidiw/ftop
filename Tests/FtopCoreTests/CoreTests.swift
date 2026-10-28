@@ -85,6 +85,36 @@ import Testing
     }
 }
 
+@Suite struct DiskTests {
+    @Test func storageIsWrittenAsFinderWritesIt() {
+        #expect(Format.storage(412_300_000_000).text == "412 GB")
+        #expect(Format.storage(999_400_000_000).text == "999 GB")
+        #expect(Format.storage(994_662_584_320).text == "995 GB")
+        #expect(Format.storage(1_870_000_000_000).text == "1.9 TB")
+        #expect(Format.storage(0).text == "0 GB")
+    }
+
+    @Test func usedIsWhatIsNotAvailable() {
+        let disk = DiskSample(totalBytes: 1000, availableBytes: 250, readBytesPerSecond: .value(1), writeBytesPerSecond: .value(2))
+        #expect(disk.usedBytes == 750)
+        #expect(disk.usedFraction == 0.75)
+        // Available above total, as a sample taken mid-change can report, is never negative.
+        let odd = DiskSample(totalBytes: 100, availableBytes: 200, readBytesPerSecond: .unavailable("x"), writeBytesPerSecond: .unavailable("x"))
+        #expect(odd.usedBytes == 0)
+        #expect(DiskSample(totalBytes: 0, availableBytes: 0, readBytesPerSecond: .value(0), writeBytesPerSecond: .value(0)).usedFraction == 0)
+    }
+
+    @Test func diskIsAnAddedReadingThatCanBeHidden() throws {
+        #expect(ModuleID.added.contains(.disk))
+        #expect(Config().shown.contains(.disk))
+        var config = try Config.decode(Data("{hidden: [\"disk\"]}".utf8))
+        #expect(!config.shown.contains(.disk))
+        _ = config.setShown(.disk, true)
+        #expect(config.shown.contains(.disk))
+        #expect(Snapshot.sample().limited(to: [.cpu]).disk.value == nil)
+    }
+}
+
 @Suite struct ConfigTests {
     @Test func menuBarReading() throws {
         #expect(try Config.decode(Data("{}".utf8)).menuBarShows == [.cpu])
@@ -275,7 +305,7 @@ import Testing
     }
 
     @Test func updatesSettingIsReadFromTheFile() throws {
-        #expect(try Config.decode(Data("{}".utf8)).updates == .install)
+        #expect(try Config.decode(Data("{}".utf8)).updates == .off)
         #expect(try Config.decode(Data("{updates: \"off\"}".utf8)).updates == .off)
         #expect(try Config.decode(Data(Config.template.utf8)) == Config())
     }

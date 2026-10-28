@@ -16,7 +16,10 @@ working hard — a local model running, an agent compiling, a long build — and
 to see at a glance what the cores, memory, and network are doing, and which app is
 responsible.
 
-It shows the current state only: no history graphs, no disk panels.
+It shows the current state only: no history graphs.
+
+> **This fork** adds a disk reading (used share, free space, read and write speed) and turns
+> off the automatic updates, because upstream releases would replace this build.
 
 ## One panel, every size
 
@@ -40,6 +43,7 @@ The color says what it belongs to; there is almost no text to read.
 | **GPU** | A column of its own beside the cores, read the same way: the fill is usage, the tick is its current frequency. Memory in use and its watts sit below. Hover for its temperature. |
 | **Power** | What the whole machine draws, in watts. |
 | **Temperature** | One figure, labeled with the sensor level it really comes from. |
+| **Disk** | How full the startup disk is (the ring), the space left, and the internal drives' read and write speed. Hide it with `hidden: ["disk"]`. |
 | **Processes** | The busiest apps with their own icons, helper processes folded into the app they belong to. An app's CPU is a share of the whole machine, the same unit as the total above it, so it never passes 100% (Activity Monitor counts one core as 100%). |
 
 A reading the hardware does not give is shown as unavailable, never as zero.

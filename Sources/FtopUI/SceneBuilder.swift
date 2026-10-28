@@ -117,7 +117,7 @@ public struct SceneBuilder {
     }
 
     /// The blocks a column layout stacks, in order. `.gpu` stands for the rows of the added
-    /// readings (GPU, power): they follow the last of CPU, memory, and network, and are left
+    /// readings (GPU, power, disk): they follow the last of CPU, memory, and network, and are left
     /// out of the compact layout, which has no labeled rows at all.
     static func stack(_ candidate: LayoutCandidate, modules: [ModuleID]) -> [ModuleID] {
         var blocks = modules.filter { ModuleID.stacked.contains($0) && ($0 != .processes || candidate.processCount > 0) }
@@ -171,6 +171,11 @@ public struct SceneBuilder {
     private var power: PowerSample? { snapshot?.power.value }
     private var showsGPU: Bool { modules.contains(.gpu) }
     private var showsPower: Bool { modules.contains(.power) }
+    private var disk: DiskSample? { snapshot?.disk.value }
+    private var showsDisk: Bool { modules.contains(.disk) }
+    private var diskHover: String { disk.map(Strings.disk) ?? snapshot?.disk.reason ?? Strings.noReading }
+    /// The disk ring is how full the startup disk is; its color turns as it nears full.
+    private var diskDial: Dial { .ring(disk?.usedFraction, PanelStyle.diskPaint(disk?.usedFraction)) }
     /// The GPU has a column of its own beside the core columns wherever those are drawn full size.
     private var gpuColumn: Bool { showsGPU && modules.contains(.cpu) }
     private var cpuHover: String { cpu.map { Strings.pick("CPU usage", "处理器总占用") + " \(Format.percent($0.usage))%" } ?? cpuReason }
@@ -567,8 +572,21 @@ public struct SceneBuilder {
                 rows.append((system, adapter))
             }
         }
+        if showsDisk {
+            // How full it is and what is left, then what it reads and writes, as the network pair shows its rates.
+            let used: Cell = (.disk, diskDial, disk.map { Format.percent($0.usedFraction) } ?? "—", "%", "100", diskHover)
+            let free = disk.map { Format.storage($0.availableBytes) }
+            let room: Cell = (.disk, .disc(.secondary), free?.number ?? "—", free?.unit ?? "", "888", diskHover)
+            rows.append((used, room))
+            func rate(_ glyph: Glyph, _ reading: Reading<Double>?) -> Cell {
+                let quantity = reading?.value.map(Format.rate)
+                return (glyph, .disc(.secondary), quantity?.number ?? "—", quantity?.unit ?? "", "888.8", diskHover)
+            }
+            rows.append((rate(.diskRead, disk?.readBytesPerSecond), rate(.diskWrite, disk?.writeBytesPerSecond)))
+        }
         guard !rows.isEmpty else { return nil }
-        let total = fixed ?? figureWidth("888.8", unit: "W") + style.rowGap + side
+        let leftColumn = max(figureWidth("888.8", unit: "W"), showsDisk ? figureWidth("888.8", unit: "MB/s") : 0)
+        let total = fixed ?? leftColumn + style.rowGap + side
         let pitch = style.badge + style.innerGap
         var scene = Scene()
         var middle = style.badge / 2
@@ -701,7 +719,7 @@ public struct SceneBuilder {
         case .processes: return processModule(width: width, count: candidate.processCount, roomy: roomy, wide: candidate.memoryList)
         // `.gpu` stands for the rows of every added reading; see `stack`.
         case .gpu: return detailRows(width: width) ?? Scene()
-        case .power: return Scene()
+        case .power, .disk: return Scene()
         }
     }
 

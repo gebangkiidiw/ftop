@@ -188,6 +188,26 @@ public struct NetworkSample: Sendable, Codable, Equatable {
     }
 }
 
+/// The startup disk: how full it is and how fast the internal drives read and write.
+public struct DiskSample: Sendable, Codable, Equatable {
+    /// Capacity of the startup volume's container, in bytes.
+    public var totalBytes: UInt64
+    /// Space the system can give to new files, as Finder counts it (purgeable space included).
+    public var availableBytes: UInt64
+    public var readBytesPerSecond: Reading<Double>
+    public var writeBytesPerSecond: Reading<Double>
+
+    public init(totalBytes: UInt64, availableBytes: UInt64, readBytesPerSecond: Reading<Double>, writeBytesPerSecond: Reading<Double>) {
+        self.totalBytes = totalBytes
+        self.availableBytes = availableBytes
+        self.readBytesPerSecond = readBytesPerSecond
+        self.writeBytesPerSecond = writeBytesPerSecond
+    }
+
+    public var usedBytes: UInt64 { totalBytes > availableBytes ? totalBytes - availableBytes : 0 }
+    public var usedFraction: Double { totalBytes > 0 ? Double(usedBytes) / Double(totalBytes) : 0 }
+}
+
 /// One process folded into an app's entry.
 public struct ProcessMember: Sendable, Codable, Equatable {
     public var name: String
@@ -309,10 +329,11 @@ public struct Snapshot: Sendable, Codable, Equatable {
     public var processes: Reading<ProcessList>
     public var gpu: Reading<GPUSample>
     public var power: Reading<PowerSample>
+    public var disk: Reading<DiskSample>
 
     public init(
         time: Date, cpu: Reading<CPUSample>, memory: Reading<MemorySample>, network: Reading<NetworkSample>, processes: Reading<ProcessList>,
-        gpu: Reading<GPUSample>, power: Reading<PowerSample>
+        gpu: Reading<GPUSample>, power: Reading<PowerSample>, disk: Reading<DiskSample> = .unavailable("not read")
     ) {
         self.time = time
         self.cpu = cpu
@@ -321,6 +342,7 @@ public struct Snapshot: Sendable, Codable, Equatable {
         self.processes = processes
         self.gpu = gpu
         self.power = power
+        self.disk = disk
     }
 
     /// The same readings with every module outside `modules` marked as turned off. The
@@ -334,6 +356,7 @@ public struct Snapshot: Sendable, Codable, Equatable {
         if !modules.contains(.processes) { copy.processes = .unavailable(off) }
         if !modules.contains(.gpu) { copy.gpu = .unavailable(off) }
         if !modules.contains(.power) { copy.power = .unavailable(off) }
+        if !modules.contains(.disk) { copy.disk = .unavailable(off) }
         return copy
     }
 }
@@ -407,7 +430,11 @@ extension Snapshot {
                 GPUSample(
                     usage: 0.37, frequencyMHz: .value(620), maxFrequencyMHz: 1578, memoryBytes: .value(gigabyte * 14 / 10),
                     temperature: .value(Temperature(celsius: 56, source: .gpu, sensorCount: 22)))),
-            power: .value(PowerSample(systemWatts: 18.6, inputWatts: .value(19.9), gpuWatts: .value(3.1)))
+            power: .value(PowerSample(systemWatts: 18.6, inputWatts: .value(19.9), gpuWatts: .value(3.1))),
+            disk: .value(
+                DiskSample(
+                    totalBytes: 994_662_584_320, availableBytes: 412_300_000_000, readBytesPerSecond: .value(48_200_000),
+                    writeBytesPerSecond: .value(12_400_000)))
         )
     }
 }

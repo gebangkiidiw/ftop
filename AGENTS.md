@@ -18,7 +18,8 @@
   is never clipped. The window snaps to the layout it shows, so no size leaves empty
   space. A layout change is not done until the reference images are regenerated and
   looked at, and the real panel has been dragged through small, thin, and large sizes.
-- Show current state only: no history graphs, no disk panels.
+- Show current state only: no history graphs. This fork adds one disk reading (how full the
+  startup disk is, its read and write rates) as an added reading beside GPU and power.
 - Keep text minimal; shape and position carry meaning, detail appears on hover. Do
   not add divider lines or thin decorative strips between or under elements.
 - A value the hardware does not report is shown as unavailable, never as zero.

@@ -51,6 +51,9 @@ public struct ReleaseInfo: Sendable, Equatable {
 }
 
 public enum UpdateFeed {
+    /// False in this fork: the releases below are upstream's, and installing one would
+    /// replace this build and take away what the fork adds (the disk reading).
+    public static let enabled = false
     public static let latest = URL(string: "https://api.github.com/repos/Nongfsq/ftop/releases/latest")!
     /// Archives are taken from the project's own release downloads and nowhere else.
     static let downloadPrefix = "https://github.com/Nongfsq/ftop/releases/download/"
